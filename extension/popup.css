@@ -1,0 +1,735 @@
+:root {
+  --bg: #0f1115;
+  --surface: #171923;
+  --surface2: #202330;
+  --border: #303446;
+  --accent: #8b7dff;
+  --accent2: #5ee6b8;
+  --text: #f2f4ff;
+  --text-muted: #ffa876;
+  --text-dim: #a8adc7;
+  --danger: #ff6b81;
+  --radius: 10px;
+  --mono: monospace;
+  --sans: sans-serif;
+}
+
+::placeholder {
+  color: var(--text-dim) !important;
+  opacity: 1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--sans);
+  width: 340px;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.screen {
+  display: none;
+  flex-direction: column;
+}
+.screen.active {
+  display: flex;
+}
+
+#vault-pw-overlay,
+#account-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: #0e0e11ee;
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  flex-direction: column;
+  justify-content: center;
+  padding: 28px 24px;
+  gap: 11px;
+}
+#vault-pw-overlay.active,
+#account-overlay.active {
+  display: flex;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  gap: 12px;
+  padding: 24px;
+
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+
+  z-index: 1000;
+}
+
+.overlay-icon {
+  font-size: 26px;
+  text-align: center;
+}
+#vault-pw-title,
+.overlay-title {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text);
+}
+.overlay-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+#vault-pw-overlay input,
+#account-overlay input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+#vault-pw-overlay input:focus,
+#account-overlay input:focus {
+  border-color: var(--accent);
+}
+
+#vault-pw-error,
+#account-error {
+  font-size: 11px;
+  color: var(--danger);
+  min-height: 14px;
+  text-align: center;
+}
+
+.overlay-btns {
+  display: flex;
+  gap: 8px;
+}
+.overlay-btns button {
+  flex: 1;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--sans);
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.overlay-btns button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.overlay-btns button:hover:not(.primary) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.overlay-btns button.primary:hover {
+  opacity: 0.85;
+}
+
+#main-screen {
+  position: relative;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-icon {
+  width: 26px;
+  height: 26px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.topbar-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.icon {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+
+.icon-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.icon-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.copy-btn,
+button.primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.copy-btn::before,
+button.primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #8b7dff, #7aa2ff, #5ee6b8);
+  opacity: 0.1;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+
+.copy-btn:hover::before,
+button.primary:hover::before {
+  opacity: 0.2;
+}
+
+.copy-btn:hover,
+button.primary:hover {
+  box-shadow:
+    0 0 0 1px rgba(139, 125, 255, 0.22),
+    0 8px 20px rgba(139, 125, 255, 0.12);
+}
+
+.copy-btn:disabled:hover {
+  box-shadow: none;
+}
+
+@keyframes subtleHue {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(18deg);
+  }
+}
+
+.panel {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.panel-secret input {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.panel-secret input:first-of-type {
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0;
+  margin-bottom: 6px;
+}
+.panel-secret input:focus {
+  border-color: var(--accent);
+}
+.panel-secret input::placeholder {
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+.panel-secret input.valid {
+  border-color: #2a7a50;
+}
+.panel-secret input.invalid {
+  border-color: var(--danger);
+}
+
+.totp-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.totp-code {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--accent2);
+  transition: opacity 0.3s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.totp-code.empty {
+  color: var(--border);
+  letter-spacing: 4px;
+}
+
+.totp-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: var(--sans);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.copy-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+.copy-btn:disabled:hover {
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.copy-btn:hover {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+.copy-btn.copied {
+  border-color: var(--accent2);
+  color: var(--accent2);
+  background: #4fffb011;
+}
+
+.timer-ring svg {
+  transform: scaleX(-1) rotate(-90deg);
+  transform-origin: center;
+  display: block;
+}
+.ring-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+.ring-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.action-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.action-panel {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  text-align: left;
+  color: var(--text);
+  transition: background 0.15s;
+}
+.action-panel:first-child {
+  border-right: 1px solid var(--border);
+}
+.action-panel:hover {
+  background: var(--surface);
+}
+.action-panel:active {
+  background: var(--surface2);
+}
+
+.action-panel-icon {
+  font-size: 18px;
+  margin-bottom: 2px;
+}
+.action-panel-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.action-panel-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.save-action .action-panel-label {
+  color: var(--accent);
+}
+.vault-action .action-panel-label {
+  color: var(--accent2);
+}
+
+.statusbar {
+  padding: 6px 16px;
+  font-size: 10px;
+  color: var(--accent2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+}
+.statusbar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+#vault-screen {
+  min-height: 200px;
+}
+
+.vault-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vault-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.back-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vault-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.vault-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--surface2);
+  padding: 2px 7px;
+  border-radius: 99px;
+}
+
+#vault-entries {
+  max-height: 340px;
+  overflow-y: auto;
+}
+#vault-entries::-webkit-scrollbar {
+  width: 4px;
+}
+#vault-entries::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+#vault-entries::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.vault-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.vault-empty-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+.vault-entry {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 10px;
+  transition: background 0.12s;
+}
+.vault-entry:hover {
+  background: var(--surface);
+}
+.vault-entry:last-child {
+  border-bottom: none;
+}
+
+.vault-entry-data {
+  flex: 1;
+  min-width: 0;
+}
+.vault-entry-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.vault-entry-code {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--accent2);
+}
+
+.vault-entry-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ve-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-dim);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.ve-btn.edit:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ve-btn.copy:hover {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+.ve-btn.copy.copied {
+  border-color: var(--accent2);
+  color: var(--accent2);
+  background: #4fffb011;
+}
+.ve-btn.del:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.ve-ring svg {
+  transform: scaleX(-1) rotate(-90deg);
+  transform-origin: center;
+  display: block;
+}
+
+.vault-edit-form {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.vault-edit-form.open {
+  display: flex;
+}
+.vault-edit-form input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: var(--sans);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.vault-edit-form input:focus {
+  border-color: var(--accent);
+}
+.vault-edit-form input.mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+.vault-edit-error {
+  font-size: 11px;
+  color: var(--danger);
+  min-height: 14px;
+}
+.vault-edit-btns {
+  display: flex;
+  gap: 6px;
+}
+.vault-edit-btns button {
+  flex: 1;
+  padding: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--sans);
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+.vault-edit-btns button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.vault-edit-btns button:hover:not(.primary) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+#change-password-screen.active {
+  padding: 20px 20px 16px;
+  gap: 10px;
+}
+#change-password-screen h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+#change-password-screen input {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+#change-password-screen input:focus {
+  border-color: var(--accent);
+}
+#change-password-screen .form-row {
+  display: flex;
+  gap: 8px;
+}
+#change-password-screen .form-row button {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--sans);
+  border-radius: var(--radius);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+#change-password-screen .form-row button.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+#change-error {
+  font-size: 11px;
+  color: var(--danger);
+  min-height: 14px;
+}
+
+.vault-edit-label {
+  margin: 10px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.hidden {
+  display: none;
+}

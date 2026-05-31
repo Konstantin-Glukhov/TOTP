@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>TOTP Vault</title>
+  <meta charset="UTF-8">
+    <link rel="stylesheet" href="./popup.css" />
+</head>
+<body style="position:relative">
+  <!-- CONFIRM DIALOG OVERLAY -->
+  <div id="confirm-overlay" class="overlay hidden">
+    <div class="overlay-icon">⚠️</div>
+    <span class="overlay-title">Delete entry?</span>
+    <span id="confirm-message" class="overlay-hint">Are you sure?</span>
+    <div class="overlay-btns">
+      <button id="confirm-cancel">Cancel</button>
+      <button id="confirm-delete" class="primary danger">Delete</button>
+    </div>
+  </div>
+
+  <!-- VAULT PASSWORD OVERLAY (create or unlock — same form) -->
+  <div id="vault-pw-overlay">
+    <div class="overlay-icon">🔐</div>
+    <span id="vault-pw-title">Unlock vault</span>
+    <span id="vault-pw-hint" class="overlay-hint"></span>
+    <input id="vault-pw-input" type="password" placeholder="Password" spellcheck="false" autocomplete="off" autofocus />
+    <input id="vault-pw-confirm" type="password" placeholder="Confirm password" style="display:none" spellcheck="false" autocomplete="off" />
+    <div id="vault-pw-error"></div>
+    <div class="overlay-btns">
+      <button id="vault-pw-cancel">Cancel</button>
+      <button id="vault-pw-submit" class="primary">Unlock</button>
+    </div>
+  </div>
+
+  <!-- ACCOUNT NAME OVERLAY (shown after vault is authenticated) -->
+  <div id="account-overlay">
+    <div class="overlay-icon">＋</div>
+    <span class="overlay-title">Save to vault</span>
+    <span class="overlay-hint">Enter a name for this account.</span>
+    <input id="account-name" type="text" placeholder="Account name (e.g. GitHub)" />
+    <div id="account-error"></div>
+    <div class="overlay-btns">
+      <button id="account-cancel">Cancel</button>
+      <button id="account-save" class="primary">Save</button>
+    </div>
+  </div>
+
+  <!-- MAIN SCREEN -->
+  <div id="main-screen" class="screen">
+    <div class="topbar">
+      <div class="topbar-brand">
+        <div class="topbar-icon">🔐</div>
+        <span class="topbar-title">TOTP Vault</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" title="Change vault password">⚙</button>
+    </div>
+
+    <!-- Item 1: Secret -->
+    <div class="panel panel-secret">
+      <div class="panel-label">Secret</div>
+      <input id="main-secret" type="text" placeholder="Base32 secret key…" spellcheck="false" autocomplete="off" autofocus />
+    </div>
+
+    <!-- Item 2: TOTP -->
+    <div class="panel">
+      <div class="panel-label">One-time code</div>
+      <div class="totp-display">
+        <div class="totp-code empty" id="main-totp">——— ———</div>
+        <div class="totp-right">
+          <button class="copy-btn" id="main-copy">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+          <div class="timer-ring">
+            <svg width="28" height="28" viewBox="0 0 28 28">
+              <circle class="ring-track" cx="14" cy="14" r="10"/>
+              <circle class="ring-arc" id="main-ring-arc" cx="14" cy="14" r="10"
+                stroke-dasharray="62.83" stroke-dashoffset="62.83"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items 3 & 4: Save to vault / Open vault -->
+    <div class="action-panels">
+      <button class="action-panel save-action" id="save-to-vault">
+        <div class="action-panel-icon">📥</div>
+        <div class="action-panel-label">Save to vault</div>
+        <div class="action-panel-desc">Store secret securely</div>
+      </button>
+      <button class="action-panel vault-action" id="open-vault">
+        <div class="action-panel-icon">🛡️</div>
+        <div class="action-panel-label">Open vault</div>
+        <div class="action-panel-desc">View saved accounts</div>
+      </button>
+    </div>
+
+    <div class="statusbar">
+      <div class="statusbar-dot"></div>
+      <span id="statusbar-text">Ready</span>
+    </div>
+  </div>
+
+  <!-- VAULT SCREEN -->
+  <div id="vault-screen" class="screen">
+    <div class="vault-header">
+      <div class="vault-header-left">
+        <button class="back-btn" id="vault-back">←</button>
+        <span class="vault-title">Vault</span>
+        <span class="vault-count" id="vault-count">0</span>
+        <span class="statusbar" id="vault-status-text"></span>
+      </div>
+    </div>
+    <div id="vault-entries"></div>
+  </div>
+
+  <!-- CHANGE PASSWORD SCREEN -->
+  <div id="change-password-screen" class="screen">
+    <h3>Change vault password</h3>
+    <input id="new-password"     type="password" placeholder="New password" spellcheck="false" autocomplete="off" />
+    <input id="confirm-password" type="password" placeholder="Confirm new password" spellcheck="false" autocomplete="off" />
+    <div id="change-error"></div>
+    <div class="form-row">
+      <button id="cancel-change">Cancel</button>
+      <button id="confirm-change" class="primary">Confirm</button>
+    </div>
+  </div>
+
+  <!-- VAULT ENTRY TEMPLATE -->
+  <template id="vault-entry-tpl">
+    <div class="vault-entry">
+      <div class="vault-entry-data">
+        <div class="vault-entry-name"></div>
+        <div class="vault-entry-code">——— ———</div>
+      </div>
+      <div class="ve-ring">
+        <svg width="26" height="26" viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+          <circle class="ring-track" cx="14" cy="14" r="10"/>
+          <circle class="ring-arc ve-arc" cx="14" cy="14" r="10" stroke-dasharray="62.83" stroke-dashoffset="0"/>
+        </svg>
+      </div>
+      <div class="vault-entry-actions">
+        <button class="ve-btn copy" title="Copy code">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="ve-btn edit" title="Edit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="ve-btn del" title="Delete">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- VAULT ENTRY EDIT TEMPLATE -->
+  <template id="vault-entry-edit-tpl">
+    <div class="vault-edit-form hidden">
+      <div class="vault-edit-label">Account Name</div>
+      <input type="text" class="edit-name-input" placeholder="Account name"/>
+      <div class="vault-edit-label">TOTP Secret</div>
+      <input type="text" class="edit-secret-input mono" placeholder="Base32 secret" spellcheck="false"/>
+      <div class="vault-edit-error"></div>
+      <div class="vault-edit-btns">
+        <button class="cancel-edit">Cancel</button>
+        <button class="save-edit primary">Save</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- COPY BUTTON TEMPLATE -->
+  <template id="copy-btn-template">
+    <svg viewBox="0 0 24 24">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </template>
+
+  <!-- COPY BUTTON TEMPLATE Timeout -->
+  <template id="copy-btn-template-to">
+    <svg viewBox="0 0 24 24">
+      <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+  </template>
+
+  <script src="popup.js"></script>
+</body>
+</html>
