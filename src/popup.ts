@@ -30,8 +30,11 @@ function base32Decode(input: string, validateOnly = false): ArrayBuffer {
   input = normalizeSecret(input);
   if (input.length < 2) throw new Error("Input should be more than 1 character");
   // validate chars
-  for (let i = 0; i < input.length; i++)
-    if (!(BASE32_DECODE[input.charCodeAt(i)]! >= 0)) throw new Error(`Invalid base32 character: ${input[i]}`);
+  for (let i = 0; i < input.length; i++){
+    const code = BASE32_DECODE[input.charCodeAt(i)];
+    if (code == null || code < 0)
+      throw new Error(`Invalid base32 character: ${input[i]}`);
+  }
   if (validateOnly) return new ArrayBuffer(0);
   // decode
   const out = new Uint8Array((input.length * 5) >> 3);
@@ -146,9 +149,17 @@ const toHex = (b: Uint8Array): string =>
     .join("");
 
 function fromHex(hex: string): Uint8Array<ArrayBuffer> {
-  const a = new Uint8Array(hex.length / 2);
-  a.set(hex.match(/.{2}/g)!.map((b) => parseInt(b, 16)));
-  return a;
+	const bytes = hex.match(/.{2}/g);
+
+	if (!bytes)
+		throw new Error("Invalid hex string");
+
+	const a = new Uint8Array(bytes.length);
+
+	for (let i = 0; i < bytes.length; i++)
+		a[i] = parseInt(bytes[i], 16);
+
+	return a;
 }
 
 function randomBytes(n: number): Uint8Array<ArrayBuffer> {
@@ -183,7 +194,9 @@ async function decryptAccounts(key: CryptoKey, iv: string, ct: string): Promise<
   return new Map(Object.entries(JSON.parse(new TextDecoder().decode(plain))));
 }
 
-async function writeVault(key: CryptoKey, salt: string, data: Accounts): Promise<void> {
+async function writeVault(key: CryptoKey | null, salt: string | null, data: Accounts): Promise<void> {
+  if (!key || !salt)
+        throw new Error("Missing session credentials");
   const { iv, ct } = await encryptAccounts(key, data);
   await chrome.storage.local.set({ vault: JSON.stringify({ salt, iv, ct }) });
 }
@@ -382,8 +395,8 @@ async function openVault(): Promise<void> {
   } else {
     try {
       const raw = await new Promise<string | null>(
-        async (res) =>
-          await chrome.storage.local.get("vault", (i) => res(typeof i["vault"] === "string" ? i["vault"] : null)),
+        (res) =>
+          chrome.storage.local.get("vault", (i) => res(typeof i.vault === "string" ? i.vault : null)),
       );
       if (!raw) {
         vaultPasswordErr.textContent = "Vault not found.";
@@ -462,13 +475,17 @@ async function showAccountOverlay(secret: string) {
     }
     accountOverlay.classList.remove("active");
     accounts.set(name, secret);
-    await writeVault(sessionKey!, sessionSalt!, accounts).then(() => {
+
+    try {
+      await writeVault(sessionKey, sessionSalt, accounts);
       mainSecretEl.value = "";
       mainSecretEl.classList.remove("valid", "invalid");
       mainTotpEl.textContent = BLANK_TOTP;
       mainTotpEl.classList.add("empty");
       setStatus(mainStatus, `"${name}" saved to vault ✓`);
-    });
+    } catch (err) {
+      setStatus(mainStatus, err);
+    }
     await showVaultScreen();
   }
 
@@ -537,8 +554,9 @@ settingsBtn.addEventListener("click", async () => {
 
 // Status bar
 
-function setStatus(statusBarEl: HTMLSpanElement, msg: string, isError = false, resetMsg: string = "Ready"): void {
-  statusBarEl.textContent = msg;
+function setStatus(statusBarEl: HTMLSpanElement, msg: unknown, isError = false, resetMsg: string = "Ready"): void {
+  const message = msg instanceof Error ? msg.message : String(msg);
+  statusBarEl.textContent = message;
   statusBarEl.style.color = isError ? "var(--danger)" : "var(--accent2)";
   setTimeout(() => {
     statusBarEl.textContent = resetMsg;
@@ -637,17 +655,16 @@ function createVaultEntry(name: string): DocumentFragment {
       const secret = accounts.get(name) ?? "";
       const newName = editNameInput.value.trim();
       const newSecret = editSecretInput.value.trim();
-
-      if (!newName) return (editErr.textContent = "Name is required.");
-      if (!newSecret) return (editErr.textContent = "Secret is required.");
-      if (newName === name && newSecret === secret) return (editErr.textContent = "No change.");
+      if (!newName) return setStatus(editErr, "Name is required.");
+      if (!newSecret) return setStatus(editErr, "Secret is required.");
+      if (newName === name && newSecret === secret) return setStatus(editErr, "No change.");
       if (newName !== name && accounts.has(newName))
-        return (editErr.textContent = `"${newName}" already exists in vault.`);
+        return setStatus(editErr, `"${newName}" already exists in vault.`);
 
       try {
         base32Decode(newSecret, true);
       } catch (e) {
-        return (editErr.textContent = (e as Error).message);
+        return setStatus(editErr, (e as Error).message);
       }
 
       if (newName !== name) {
@@ -658,7 +675,11 @@ function createVaultEntry(name: string): DocumentFragment {
 
       accounts.set(newName, newSecret);
 
-      await writeVault(sessionKey!, sessionSalt!, accounts);
+      try {
+      await writeVault(sessionKey, sessionSalt, accounts);
+      } catch (err) {
+        return setStatus(editErr, err);
+      }
 
       await updateOnlyThatEntry(newName);
 
@@ -696,14 +717,8 @@ confirmChgPasswordBtn.addEventListener("click", async () => {
   const np = newPasswordEl.value,
     cp = confirmChgPasswordEl.value;
   changeErr.textContent = "";
-  if (!np) {
-    changeErr.textContent = "New password is required.";
-    return;
-  }
-  if (np !== cp) {
-    changeErr.textContent = "Passwords do not match.";
-    return;
-  }
+  if (!np) return setStatus(changeErr, "New password is required.");
+  if (np !== cp) return setStatus(changeErr, "Passwords do not match.");
   try {
     const newSalt = randomBytes(16);
     sessionKey = await deriveKey(np, newSalt);
@@ -711,7 +726,7 @@ confirmChgPasswordBtn.addEventListener("click", async () => {
     await writeVault(sessionKey, sessionSalt, accounts);
     await showMainScreen();
   } catch {
-    changeErr.textContent = "Failed to change password.";
+    setStatus(changeErr, "Failed to change password.");
   }
 });
 
@@ -767,7 +782,7 @@ async function startTicker(ticker: (recalculate: boolean) => Promise<void>, stat
 // Startup
 
 chrome.storage.local.get("vault", (items) => {
-  vaultExists = typeof items["vault"] === "string";
+  vaultExists = typeof items.vault === "string";
 });
 
 showMainScreen();
